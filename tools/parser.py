@@ -37,8 +37,8 @@ def normalize_status(data: Dict) -> str:
     status_obj = data.get("status", {})
     raw_status = status_obj.get("status_code") or status_obj.get("code")
     
-    if raw_status in [1, "STATUS_CODE_OK", "OK"]: return "OK"
-    if raw_status in [2, "STATUS_CODE_ERROR", "ERROR"]: return "ERROR"
+    if raw_status in [1, "STATUS_CODE_OK", "OK", "Ok"]: return "OK"
+    if raw_status in [2, "STATUS_CODE_ERROR", "ERROR", "Error"]: return "ERROR"
     return "UNSET"
 
 def map_line_to_span(line: str, line_num: int, default_trace_id: str) -> Optional[Span]:
