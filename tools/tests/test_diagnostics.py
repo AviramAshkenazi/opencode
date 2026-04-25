@@ -53,3 +53,21 @@ def test_flash_build_zero_division_protection():
     
     assert report.total_duration_ms == pytest.approx(2.0)
     assert report.concurrency_score == pytest.approx(1.0)
+
+def test_detect_retries_and_rate_limits():
+    """Verifies that CI friction (retries and rate limits) is correctly identified."""
+    spans = [
+        Span(span_id="1", trace_id="t1", name="npm install", start_time=1.0, end_time=2.0, status="ERROR"),
+        Span(span_id="2", trace_id="t1", name="npm install", start_time=3.0, end_time=4.0, status="OK"),
+        Span(span_id="3", trace_id="t1", name="github-api-call", start_time=5.0, end_time=6.0, status="ERROR", 
+             attributes={"http.status_code": 429})
+    ]
+    
+    report = analyze_trace(Trace(trace_id="t1", spans=spans))
+    
+    assert len(report.retries) == 1
+    assert report.retries[0]["name"] == "npm install"
+    assert report.retries[0]["attempts"] == 2
+    
+    assert len(report.rate_limits) == 1
+    assert report.rate_limits[0]["name"] == "github-api-call"

@@ -17,13 +17,17 @@ def sanitize_string(text: str, is_id: bool = False) -> str:
     return re.sub(r'[:,"\'\(\)\[\]{}]', ' ', str(text)).strip() or "unnamed_task"
 
 def apply_semantic_zooming(spans: List[Span], max_spans: int = 50) -> List[Span]:
-    """Protects the rendering engine by filtering down to the longest and most critical spans."""
     if len(spans) <= max_spans:
         return sorted(spans, key=lambda x: x.start_time or 0.0)
         
-    logger.warning(f"Trace too large ({len(spans)} spans). Truncating to top {max_spans} critical spans.")
-    critical_spans = sorted(spans, key=lambda x: x.duration_ms or 0.0, reverse=True)[:max_spans]
-    return sorted(critical_spans, key=lambda x: x.start_time or 0.0)
+    errors = [s for s in spans if s.status == "ERROR"]
+    others = [s for s in spans if s.status != "ERROR"]
+    
+    needed_others = max(0, max_spans - len(errors))
+    critical_others = sorted(others, key=lambda x: x.duration_ms or 0.0, reverse=True)[:needed_others]
+    
+    combined = errors + critical_others
+    return sorted(combined, key=lambda x: x.start_time or 0.0)
 
 def format_mermaid_line(span: Span, index: int, min_start_sec: float) -> str:
     """Formats a single span into a Mermaid Gantt line."""
