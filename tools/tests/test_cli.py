@@ -75,7 +75,7 @@ def test_cli_diff_impact(dummy_trace, tmp_path):
         "context": {"trace_id": "1", "span_id": "1"},
         "name": "CLI Test",
         "start_time": "2026-04-23T10:00:00Z",
-        "end_time": "2026-04-23T10:00:00.500000Z", # 500ms duration
+        "end_time": "2026-04-23T10:00:00.500000Z",
         "status": {"code": 1}
     }
     with open(opt_path, "w") as f:
@@ -87,3 +87,30 @@ def test_cli_diff_impact(dummy_trace, tmp_path):
     diff_data = json.loads(result.stdout)
     assert diff_data["time_saved_ms"] == 500.0
     assert diff_data["improvement_percent"] == 50.0
+
+def test_cli_diff_pr_format(dummy_trace, tmp_path):
+    """Ensures that the --pr flag outputs a well-formatted Markdown report."""
+    opt_path = tmp_path / "opt_pr.jsonl"
+    data = {
+        "context": {"trace_id": "1", "span_id": "1"},
+        "name": "PR Test",
+        "start_time": "2026-04-23T10:00:00.000000Z",
+        "end_time": "2026-04-23T10:00:00.500000Z", # 500ms
+        "status": {"code": 1}
+    }
+    with open(opt_path, "w") as f:
+        f.write(json.dumps(data) + "\n")
+
+    result = run_cli_command(["diff", str(dummy_trace), str(opt_path), "--pr"])
+    
+    assert result.returncode == 0
+    output = result.stdout
+    
+    assert "### 🚀 FastCI: Pipeline Optimization Report" in output
+    assert "#### 📊 Impact Analysis" in output
+    assert "Time Saved" in output
+    assert "50.0% improvement" in output
+    assert "```mermaid" in output
+    
+    with pytest.raises(json.JSONDecodeError):
+        json.loads(output)
