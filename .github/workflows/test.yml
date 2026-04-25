@@ -61,10 +61,10 @@ jobs:
         uses: actions/cache@v4
         with:
           path: node_modules/.cache/turbo
-          key: turbo-${{ runner.os }}-${{ hashFiles('turbo.json', '**/package.json') }}-${{ github.sha }}
+          key: turbo-${{ runner.os }}-${{ hashFiles('turbo.json', '**/package-lock.json', '**/pnpm-lock.yaml', '**/yarn.lock') }}
           restore-keys: |
-            turbo-${{ runner.os }}-${{ hashFiles('turbo.json', '**/package.json') }}-
             turbo-${{ runner.os }}-
+            turbo-
 
       - name: Run unit tests
         run: bun turbo test:ci
@@ -124,6 +124,15 @@ jobs:
       - name: Setup Bun
         uses: ./.github/actions/setup-bun
 
+      - name: Cache Bun
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('**/package-lock.json', '**/pnpm-lock.yaml', '**/yarn.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
+            bun-
+
       - name: Read Playwright version
         id: playwright-version
         run: |
@@ -136,6 +145,9 @@ jobs:
         with:
           path: ${{ github.workspace }}/.playwright-browsers
           key: ${{ runner.os }}-${{ runner.arch }}-playwright-${{ steps.playwright-version.outputs.version }}-chromium
+          restore-keys: |
+            ${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.version }}-
+            ${{ runner.os }}-playwright-
 
       - name: Install Playwright system dependencies
         if: runner.os == 'Linux'
