@@ -32,12 +32,6 @@ def parse_time(value: Any) -> Optional[float]:
         logger.debug(f"Failed to parse timestamp {value}: {e}")
         return None
 
-def normalize_time(data: Dict) -> Tuple[float, Optional[float]]:
-    """Converts nanoseconds from various OTEL formats to Unix seconds."""
-    start = data.get("start_time") or data.get("startTimeUnixNano")
-    end = data.get("end_time") or data.get("endTimeUnixNano")
-    return parse_time(start), parse_time(end)
-
 def normalize_status(data: Dict) -> str:
     """Maps various status formats (numeric/string) to a unified OK/ERROR/UNSET."""
     status_obj = data.get("status", {})
@@ -54,7 +48,7 @@ def map_line_to_span(line: str, line_num: int, default_trace_id: str) -> Optiona
         if not isinstance(data, dict): return None
         
         span_id, trace_id = extract_ids(data, line_num)
-        start, end = normalize_time(data)
+        start, end = parse_time(data.get("start_time")), parse_time(data.get("end_time"))
         status = normalize_status(data)
         
         return Span(
