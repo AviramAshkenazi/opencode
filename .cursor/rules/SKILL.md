@@ -64,7 +64,8 @@ You operate within a structured, Enterprise-ready environment utilizing a Python
 1. **Dry Run:** Run the workflow via `gh workflow run` on an ephemeral branch. You MUST wait for the run to complete before proceeding.
 2. **Reflection & Retry:** If the run fails, fetch logs via `gh run view --log`, analyze the error, and attempt up to 2 auto-corrections.
 3. **Cleanup & Hygiene:** If the self-healing loop fails permanently, DELETE the ephemeral branch to avoid repository clutter and revert local files. Halt execution.
-4. **Update Baseline:** If successful, document the new expected durations.
+4. **Architectural Diff (Proof of Value):** Execute `python3 -m tools.fastci_cli diff data/baseline_trace.jsonl data/latest_trace.jsonl`.
+5. **Analyze Impact:** Review the `improvement_percent` and `bottlenecks_resolved`. If the optimization shows a regression (new errors or increased duration), revert changes and notify the user.
 
 ### Phase 7: Reporting, Auditability & PR Generation
 1. **Auditability (Decision Log):** Generate a `decision_log.md` file documenting your Chain of Thought (e.g., "Identified memory bottleneck in span X -> Added memory constraints"). Commit this file to the ephemeral branch.

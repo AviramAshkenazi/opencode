@@ -15,7 +15,7 @@ if __package__ is None or __package__ == "":
 from tools.models import to_dict, Trace, ErrorPayload, Span, DiagnosticReport, PreflightReport
 from tools.preflight import execute_preflight
 from tools.parser import parse_trace_file
-from tools.diagnostics import analyze_trace
+from tools.diagnostics import analyze_trace, compare_reports
 from tools.visualizer import generate_mermaid_gantt
 
 logger = logging.getLogger(__name__)
@@ -72,6 +72,23 @@ def handle_schema(args):
     }
     return {"status": "ok", "schema": schema}
 
+def handle_diff(args):
+    err1 = check_file_exists(args.baseline)
+    err2 = check_file_exists(args.optimized)
+    if err1: return err1
+    if err2: return err2
+    
+    trace_before = parse_trace_file(args.baseline)
+    trace_after = parse_trace_file(args.optimized)
+    
+    if not isinstance(trace_before, Trace) or not isinstance(trace_after, Trace):
+        return ErrorPayload(status="error", error_type="ParseError", message="Could not parse one of the trace files")
+    
+    report_before = analyze_trace(trace_before)
+    report_after = analyze_trace(trace_after)
+    
+    return compare_reports(report_before, report_after)
+
 def main():
     parser = argparse.ArgumentParser(description="FastCI Agent CLI - Enterprise CI Optimization Tool")
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable debug logging")
@@ -95,6 +112,11 @@ def main():
 
     sp_schema = subparsers.add_parser("schema", help="Output JSON schemas for AI understanding")
     sp_schema.set_defaults(func=handle_schema)
+
+    sp_diff = subparsers.add_parser("diff", help="Compare baseline vs optimized trace")
+    sp_diff.add_argument("baseline", type=str, help="The original trace file")
+    sp_diff.add_argument("optimized", type=str, help="The trace file after optimizations")
+    sp_diff.set_defaults(func=handle_diff)
 
     args = parser.parse_args()
     setup_logging(args.verbose)

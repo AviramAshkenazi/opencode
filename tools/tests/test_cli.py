@@ -66,3 +66,24 @@ def test_cli_visualize_raw_output(dummy_trace):
     # Verify it's not a JSON
     with pytest.raises(json.JSONDecodeError):
         json.loads(result.stdout)
+
+def test_cli_diff_impact(dummy_trace, tmp_path):
+    """Verifies that the diff command correctly identifies improvements."""
+    # Create an 'optimized' trace that is 500ms faster than dummy_trace (which was 1000ms)
+    opt_path = tmp_path / "opt.jsonl"
+    data = {
+        "context": {"trace_id": "1", "span_id": "1"},
+        "name": "CLI Test",
+        "start_time": "2026-04-23T10:00:00Z",
+        "end_time": "2026-04-23T10:00:00.500000Z", # 500ms duration
+        "status": {"code": 1}
+    }
+    with open(opt_path, "w") as f:
+        f.write(json.dumps(data) + "\n")
+        
+    result = run_cli_command(["diff", str(dummy_trace), str(opt_path)])
+    assert result.returncode == 0
+    
+    diff_data = json.loads(result.stdout)
+    assert diff_data["time_saved_ms"] == 500.0
+    assert diff_data["improvement_percent"] == 50.0
