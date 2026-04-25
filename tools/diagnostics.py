@@ -2,7 +2,7 @@ import logging
 import hashlib
 from typing import List, Dict, Tuple, Union
 
-from .models import Trace, Span, DiagnosticReport, ErrorPayload, CacheEfficiencyReport
+from .models import Trace, Span, DiagnosticReport, ErrorPayload, CacheEfficiencyReport, DiffReport
 
 logger = logging.getLogger(__name__)
 
@@ -170,4 +170,27 @@ def analyze_trace(trace: Trace) -> Union[DiagnosticReport, ErrorPayload]:
         retries=retries,
         rate_limits=rate_limits,
         warnings=warnings
+    )
+
+def compare_reports(before: DiagnosticReport, after: DiagnosticReport) -> DiffReport:
+    """Compares two diagnostic reports to calculate optimization impact."""
+    saved_ms = before.total_duration_ms - after.total_duration_ms
+    improvement_pct = (saved_ms / before.total_duration_ms * 100) if before.total_duration_ms > 0 else 0
+    
+    before_bottlenecks = {b["name"] for b in before.top_bottlenecks}
+    after_bottlenecks = {a["name"] for a in after.top_bottlenecks}
+    bottlenecks_resolved = list(before_bottlenecks - after_bottlenecks)
+
+    savings_delta_usd = round(after.cache_report.estimated_savings_usd - before.cache_report.estimated_savings_usd, 4)
+
+    new_errors = len(after.oom_spans) + len(after.silent_failures)
+    
+    return DiffReport(
+        before_ms=round(before.total_duration_ms, 2),
+        after_ms=round(after.total_duration_ms, 2),
+        time_saved_ms=round(saved_ms, 2),
+        improvement_percent=round(improvement_pct, 2),
+        savings_delta_usd=savings_delta_usd,
+        new_errors_count=new_errors,
+        bottlenecks_resolved=bottlenecks_resolved
     )

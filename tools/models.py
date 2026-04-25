@@ -2,9 +2,6 @@ import dataclasses
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Any
 
-# ---------------------------------------------------------
-# 1. OpenTelemetry Trace Models
-# ---------------------------------------------------------
 @dataclass
 class Span:
     """Represents a single step or job in the CI pipeline."""
@@ -36,9 +33,6 @@ class Trace:
     trace_id: str
     spans: List[Span] = field(default_factory=list)
 
-# ---------------------------------------------------------
-# 2. Phase 0 & FinOps Models
-# ---------------------------------------------------------
 @dataclass
 class PreflightReport:
     """Result of the Phase 0 environment and auth checks."""
@@ -56,9 +50,6 @@ class CacheEfficiencyReport:
     cache_duration_ms: float = 0.0
     estimated_savings_usd: float = 0.0
 
-# ---------------------------------------------------------
-# 3. Phase 2: Diagnostic Models
-# ---------------------------------------------------------
 @dataclass
 class DiagnosticReport:
     """The summarized findings provided to the AI Agent."""
@@ -75,9 +66,6 @@ class DiagnosticReport:
     rate_limits: List[Dict[str, Any]] = field(default_factory=list)
     warnings: List[str] = field(default_factory=list)
 
-# ---------------------------------------------------------
-# 4. Error Handling Model
-# ---------------------------------------------------------
 @dataclass
 class ErrorPayload:
     """Structured error for Graceful Degradation."""
@@ -86,9 +74,17 @@ class ErrorPayload:
     message: str = ""
     suggestion: str = "Halt execution and report to the DevOps team."
 
-# ---------------------------------------------------------
-# Helper function for JSON serialization
-# ---------------------------------------------------------
+@dataclass
+class DiffReport:
+    status: str = "ok"
+    before_ms: float = 0.0
+    after_ms: float = 0.0
+    time_saved_ms: float = 0.0
+    improvement_percent: float = 0.0
+    savings_delta_usd: float = 0.0
+    new_errors_count: int = 0
+    bottlenecks_resolved: List[str] = field(default_factory=list)
+
 def to_dict(obj: Any) -> Any:
     """Recursively converts dataclasses and primitives to dicts for JSON output."""
     if dataclasses.is_dataclass(obj):
