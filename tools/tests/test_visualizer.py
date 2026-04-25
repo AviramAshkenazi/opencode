@@ -14,7 +14,6 @@ def test_mermaid_string_sanitation():
 
 def test_semantic_zooming_protection():
     """Ensures protection against rendering crashes by truncating excessively long traces."""
-    # Creating 60 spans with different durations
     spans = [
         Span(span_id=str(i), trace_id="t1", name=f"Task {i}", start_time=float(i), end_time=float(i*2), status="OK")
         for i in range(1, 61)
@@ -24,6 +23,36 @@ def test_semantic_zooming_protection():
     assert len(zoomed_spans) == 50
     # Ensure the longest span (task 60 which took 60 seconds) survived the filtering
     assert any(s.span_id == "60" for s in zoomed_spans)
+
+def test_semantic_zooming_prioritizes_errors():
+    """Verifies that failed spans are always included in the visual even if they are short."""
+    error_span = Span(span_id="err", trace_id="t1", name="Quick Error", start_time=1.0, end_time=1.1, status="ERROR")
+    successes = [
+        Span(span_id=str(i), trace_id="t1", name=f"Long Task {i}", start_time=float(i), end_time=float(i+10), status="OK")
+        for i in range(2, 61)
+    ]
+    
+    zoomed = apply_semantic_zooming([error_span] + successes, max_spans=50)
+    assert len(zoomed) == 50
+    assert any(s.span_id == "err" for s in zoomed), "The error span should be preserved despite its short duration"
+
+def test_visualizer_error_coloring():
+    """Ensures spans with ERROR status are marked as 'crit' for red coloring in Mermaid."""
+    spans = [
+        Span(span_id="1", trace_id="t1", name="Success Task", start_time=100.0, end_time=110.0, status="OK"),
+        Span(span_id="2", trace_id="t1", name="Failed Task", start_time=110.0, end_time=120.0, status="ERROR")
+    ]
+    result = generate_mermaid_gantt(Trace(trace_id="t1", spans=spans))
+    mermaid = result["mermaid_syntax"]
+    
+    assert "Success Task" in mermaid
+    assert "Failed Task" in mermaid
+    
+    for line in mermaid.split('\n'):
+        if "Failed Task" in line:
+            assert "crit," in line
+        if "Success Task" in line:
+            assert "crit," not in line
 
 def test_mermaid_gantt_generation():
     """Ensures the generated visual format is valid and contains the required information."""

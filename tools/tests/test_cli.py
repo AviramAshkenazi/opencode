@@ -54,3 +54,15 @@ def test_cli_schema_command():
     schema = output_data["schema"]
     assert "DiagnosticReport" in schema
     assert "Span" in schema
+
+def test_cli_visualize_raw_output(dummy_trace):
+    """Checks that --raw flag outputs plain text instead of a JSON wrapper."""
+    cmd = ["python3", "-m", "tools.fastci_cli", "visualize", str(dummy_trace), "--raw"]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    
+    assert result.returncode == 0
+    # Output should start with the mermaid block, not with '{'
+    assert result.stdout.strip().startswith("```mermaid")
+    # Verify it's not a JSON
+    with pytest.raises(json.JSONDecodeError):
+        json.loads(result.stdout)

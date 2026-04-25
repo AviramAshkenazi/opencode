@@ -49,10 +49,16 @@ def handle_diagnose(args):
 
 def handle_visualize(args):
     err = check_file_exists(args.file)
-    if err: 
-        return err
+    if err: return err
+
     trace = parse_trace_file(args.file)
-    return generate_mermaid_gantt(trace) if isinstance(trace, Trace) else trace
+    if not isinstance(trace, Trace): return trace
+    
+    result = generate_mermaid_gantt(trace)
+    
+    if args.raw and isinstance(result, dict) and result.get("status") == "ok":
+        return result.get("mermaid_syntax")
+    return result
 
 def handle_schema(args):
     """Dynamically generates a JSON representation of our Data Contracts for the AI."""
@@ -84,6 +90,7 @@ def main():
 
     sp_viz = subparsers.add_parser("visualize", help="Generate Mermaid.js chart")
     sp_viz.add_argument("file", type=str)
+    sp_viz.add_argument("--raw", action="store_true", help="Output raw Markdown instead of JSON")
     sp_viz.set_defaults(func=handle_visualize)
 
     sp_schema = subparsers.add_parser("schema", help="Output JSON schemas for AI understanding")
@@ -94,12 +101,19 @@ def main():
 
     try:
         result = args.func(args)
-
+        
+        # Handle raw string outputs (visualize --raw)
+        if isinstance(result, str):
+            print(result)
+            sys.exit(0)
+            
         output_dict = to_dict(result) if dataclasses.is_dataclass(result) else result
         print(json.dumps(output_dict, indent=2))
-
-        has_error = isinstance(result, ErrorPayload) or output_dict.get("status") == "error"
-        sys.exit(2 if has_error else 0)
+        
+        is_error = isinstance(result, ErrorPayload)
+        if isinstance(output_dict, dict) and output_dict.get("status") == "error":
+            is_error = True
+        sys.exit(2 if is_error else 0)
         
     except Exception as e:
         logger.error(f"CLI failed: {e}", exc_info=args.verbose)
