@@ -10,7 +10,6 @@ You operate within a structured, Enterprise-ready environment utilizing a Python
 * **Data Contracts:** If you are unsure about the structure of the JSON outputs, run `python3 -m tools.fastci_cli schema` to read the dynamic data contracts. Rely entirely on this schema.
 * **Agent-Optimized I/O:** The CLI outputs strictly formatted JSON to `stdout`. Logs and errors go to `stderr`.
 * **Context Limit Management:** DO NOT attempt to read raw `trace.jsonl` files directly into your context window. Rely entirely on the summarized JSON outputs.
-* **Audit Artifacts:** You are required to output your reasoning into a `decision_log.md` file during optimization phases to maintain system transparency.
 * **Emergency Override & Graceful Exit:** You operate under strict execution boundaries. If your authorization token is revoked or you receive a system kill signal, halt immediately without corrupting the local Git state.
 * **Tooling Failure Mode:** If the CLI crashes, DO NOT guess data. Halt and generate an error report.
 * **Self-Testing:** If you modify scripts in `tools/`, you MUST run `python3 -m pytest tools/tests/` to verify system integrity.
@@ -46,8 +45,8 @@ You operate within a structured, Enterprise-ready environment utilizing a Python
 2. Analyze the JSON report focusing on: Top Bottlenecks, True Concurrency Score, Cache Efficiency (FinOps ROI), Silent Failures, OOM Spans, and CI Friction (`retries` and `rate_limits`).
 
 ### Phase 3: Visualization & Tech Debt Archaeology
-1. Execute `python3 -m tools.fastci_cli visualize data/trace.jsonl --raw > chart.md` to generate a clean Mermaid.js Gantt chart.
-2. Read `chart.md` to identify structural monoliths or critical path bottlenecks visually.
+1. **Visual Analysis:** Execute `python3 -m tools.fastci_cli visualize data/trace.jsonl --raw`.
+2. **Structural Review:** Analyze the Mermaid.js Gantt output directly in your context to identify structural monoliths, long-running sequential jobs, or critical path bottlenecks.
 
 ### Phase 4: DevSecOps Context
 1. Scan for Sensitive Data Leakage in trace attributes. Halt if found.
@@ -67,7 +66,8 @@ You operate within a structured, Enterprise-ready environment utilizing a Python
 4. **Architectural Diff (Proof of Value):** Execute `python3 -m tools.fastci_cli diff data/baseline_trace.jsonl data/latest_trace.jsonl`.
 5. **Analyze Impact:** Review the `improvement_percent` and `bottlenecks_resolved`. If the optimization shows a regression (new errors or increased duration), revert changes and notify the user.
 
-### Phase 7: Reporting, Auditability & PR Generation
-1. **Auditability (Decision Log):** Generate a `decision_log.md` file documenting your Chain of Thought. Commit this file to the ephemeral branch.
-2. **Generate PR Body:** Execute `python3 -m tools.fastci_cli diff data/baseline_trace.jsonl data/latest_trace.jsonl --pr > pr_body.md`.
-3. **Create Pull Request:** Submit via `gh pr create --title "🤖 FastCI Optimization" --body-file pr_body.md`.
+### Phase 7: Reporting & PR Generation
+1. **Analyze Impact & Report:** Execute `python3 -m tools.fastci_cli diff data/baseline_trace.jsonl data/latest_trace.jsonl --pr`. 
+2. **Buffer Output:** Capture the full Markdown output of the previous command into your internal context.
+3. **Submit Optimization:** Use the captured output to create a Pull Request. You MUST follow Conventional Commit format for the title. Execute:
+   `echo "YOUR_CAPTURED_MARKDOWN" | gh pr create --title "refactor(ci): 🤖 FastCI pipeline optimization" --body-file -`
