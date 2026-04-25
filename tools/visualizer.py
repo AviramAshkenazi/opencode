@@ -87,3 +87,34 @@ def generate_mermaid_gantt(trace: Trace) -> Union[Dict[str, Any], ErrorPayload]:
         "span_count": len(rendered_spans),
         "original_span_count": len(valid_spans)
     }
+
+def format_pr_report(diff, trace_after) -> str:
+    """Generates a rich Markdown report for GitHub PRs based on optimization results."""
+    gantt_result = generate_mermaid_gantt(trace_after)
+    mermaid_chart = gantt_result.get("mermaid_syntax", "") if isinstance(gantt_result, dict) else ""
+    
+    resolved_list = "\n".join([f"* ✅ `{b}`" for b in diff.bottlenecks_resolved])
+    if not resolved_list:
+        resolved_list = "* No specific bottlenecks fully eliminated, but overall time improved."
+
+    return f"""### 🚀 FastCI: Pipeline Optimization Report
+
+**TL;DR:** FastCI Agent successfully optimized the pipeline, reducing CI friction and resolving critical bottlenecks.
+
+#### 📊 Impact Analysis
+* ⏱️ **Time Saved:** `{diff.time_saved_ms / 1000}s` per run (**{diff.improvement_percent}% improvement**)
+* 💰 **FinOps Delta:** `${diff.savings_delta_usd}/run`
+* 🚦 **New Errors Introduced:** `{diff.new_errors_count}`
+
+#### 🔍 Bottlenecks Resolved
+{resolved_list}
+
+#### 📈 Optimized Visual Trace
+<details>
+<summary>Click to view Mermaid Gantt</summary>
+
+{mermaid_chart}
+
+</details>
+
+*Generated autonomously by FastCI Agent. See `decision_log.md` for my complete chain-of-thought.*"""

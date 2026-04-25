@@ -16,7 +16,7 @@ from tools.models import to_dict, Trace, ErrorPayload, Span, DiagnosticReport, P
 from tools.preflight import execute_preflight
 from tools.parser import parse_trace_file
 from tools.diagnostics import analyze_trace, compare_reports
-from tools.visualizer import generate_mermaid_gantt
+from tools.visualizer import generate_mermaid_gantt, format_pr_report
 
 logger = logging.getLogger(__name__)
 
@@ -82,12 +82,14 @@ def handle_diff(args):
     trace_after = parse_trace_file(args.optimized)
     
     if not isinstance(trace_before, Trace) or not isinstance(trace_after, Trace):
-        return ErrorPayload(status="error", error_type="ParseError", message="Could not parse one of the trace files")
+        return ErrorPayload(status="error", error_type="ParseError", message="Failed to parse trace files")
     
-    report_before = analyze_trace(trace_before)
-    report_after = analyze_trace(trace_after)
+    diff = compare_reports(analyze_trace(trace_before), analyze_trace(trace_after))
     
-    return compare_reports(report_before, report_after)
+    if getattr(args, 'pr', False):
+        return format_pr_report(diff, trace_after)
+    
+    return diff
 
 def main():
     parser = argparse.ArgumentParser(description="FastCI Agent CLI - Enterprise CI Optimization Tool")
@@ -116,6 +118,7 @@ def main():
     sp_diff = subparsers.add_parser("diff", help="Compare baseline vs optimized trace")
     sp_diff.add_argument("baseline", type=str, help="The original trace file")
     sp_diff.add_argument("optimized", type=str, help="The trace file after optimizations")
+    sp_diff.add_argument("--pr", action="store_true", help="Output a formatted PR Markdown body")
     sp_diff.set_defaults(func=handle_diff)
 
     args = parser.parse_args()

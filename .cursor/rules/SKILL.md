@@ -68,6 +68,6 @@ You operate within a structured, Enterprise-ready environment utilizing a Python
 5. **Analyze Impact:** Review the `improvement_percent` and `bottlenecks_resolved`. If the optimization shows a regression (new errors or increased duration), revert changes and notify the user.
 
 ### Phase 7: Reporting, Auditability & PR Generation
-1. **Auditability (Decision Log):** Generate a `decision_log.md` file documenting your Chain of Thought (e.g., "Identified memory bottleneck in span X -> Added memory constraints"). Commit this file to the ephemeral branch.
-2. **FinOps Calculation:** Extract the `estimated_savings_usd` from the diagnostic report to formulate a monthly ROI.
-3. **Create Pull Request:** Submit via `gh pr create` including ROI, the content of `chart.md` (the Gantt chart), warnings, and a reference to the `decision_log.md`.
+1. **Auditability (Decision Log):** Generate a `decision_log.md` file documenting your Chain of Thought. Commit this file to the ephemeral branch.
+2. **Generate PR Body:** Execute `python3 -m tools.fastci_cli diff data/baseline_trace.jsonl data/latest_trace.jsonl --pr > pr_body.md`.
+3. **Create Pull Request:** Submit via `gh pr create --title "🤖 FastCI Optimization" --body-file pr_body.md`.
