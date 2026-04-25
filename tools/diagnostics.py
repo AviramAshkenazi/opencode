@@ -113,6 +113,28 @@ def analyze_finops(completed_spans: List[Span]) -> CacheEfficiencyReport:
         estimated_savings_usd=round(est_savings, 4)
     )
 
+def detect_ci_friction(completed_spans: List[Span]) -> Tuple[List[Dict], List[Dict]]:
+    """Detects CI-specific friction: Retries and API Rate Limits."""
+    retries = []
+    rate_limits = []
+    
+    name_counts = {}
+    for s in completed_spans:
+        name_counts[s.name] = name_counts.get(s.name, 0) + 1
+    for name, count in name_counts.items():
+        if count > 1:
+            retries.append({"name": name, "attempts": count})
+
+    for s in completed_spans:
+        attr = s.attributes
+        error_msg = str(attr.get("error.message", "")).lower()
+        http_status = attr.get("http.status_code") or attr.get("http.statusCode")
+        
+        if http_status == 429 or "rate limit" in error_msg or "too many requests" in error_msg:
+            rate_limits.append({"name": s.name, "span_id": s.span_id})
+
+    return retries, rate_limits
+
 def analyze_trace(trace: Trace) -> Union[DiagnosticReport, ErrorPayload]:
     """
     Analyzes a parsed Trace object and generates actionable insights for the AI Agent.
@@ -133,6 +155,7 @@ def analyze_trace(trace: Trace) -> Union[DiagnosticReport, ErrorPayload]:
     wall_clock_ms, concurrency_score = calculate_timing(completed_spans)
     cache_report = analyze_finops(completed_spans)
     topology_hash = calculate_topology_hash(valid_spans)
+    retries, rate_limits = detect_ci_friction(completed_spans)
 
     return DiagnosticReport(
         top_bottlenecks=top_bottlenecks,
@@ -144,5 +167,7 @@ def analyze_trace(trace: Trace) -> Union[DiagnosticReport, ErrorPayload]:
         total_duration_ms=wall_clock_ms,
         topology_hash=topology_hash,
         cache_report=cache_report,
+        retries=retries,
+        rate_limits=rate_limits,
         warnings=warnings
     )

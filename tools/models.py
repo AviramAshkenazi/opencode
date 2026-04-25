@@ -71,6 +71,8 @@ class DiagnosticReport:
     total_duration_ms: float = 0.0
     topology_hash: str = ""
     cache_report: Optional[CacheEfficiencyReport] = None
+    retries: List[Dict[str, Any]] = field(default_factory=list)
+    rate_limits: List[Dict[str, Any]] = field(default_factory=list)
     warnings: List[str] = field(default_factory=list)
 
 # ---------------------------------------------------------
