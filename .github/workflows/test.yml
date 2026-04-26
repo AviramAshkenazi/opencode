@@ -61,9 +61,10 @@ jobs:
         uses: actions/cache@v4
         with:
           path: node_modules/.cache/turbo
-          key: turbo-${{ runner.os }}-${{ hashFiles('turbo.json', '**/package.json') }}-${{ github.sha }}
+          # Use lockfile hashes (fallback to package.json) and avoid commit-specific keys
+          key: turbo-${{ runner.os }}-${{ hashFiles('turbo.json', '**/package-lock.json', '**/bun.lockb', '**/pnpm-lock.yaml', '**/yarn.lock', '**/package.json') }}
           restore-keys: |
-            turbo-${{ runner.os }}-${{ hashFiles('turbo.json', '**/package.json') }}-
+            turbo-${{ runner.os }}-${{ hashFiles('turbo.json', '**/package-lock.json', '**/bun.lockb', '**/pnpm-lock.yaml', '**/yarn.lock', '**/package.json') }}-
             turbo-${{ runner.os }}-
 
       - name: Run unit tests
@@ -135,7 +136,11 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}/.playwright-browsers
-          key: ${{ runner.os }}-${{ runner.arch }}-playwright-${{ steps.playwright-version.outputs.version }}-chromium
+          # Include runtime arch + playwright version and lockfile hash to ensure cache validity
+          key: ${{ runner.os }}-${{ runner.arch }}-playwright-${{ steps.playwright-version.outputs.version }}-${{ hashFiles('**/package-lock.json', '**/bun.lockb', '**/pnpm-lock.yaml', '**/yarn.lock', '**/package.json') }}-chromium
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-playwright-${{ steps.playwright-version.outputs.version }}-
+            ${{ runner.os }}-${{ runner.arch }}-playwright-
 
       - name: Install Playwright system dependencies
         if: runner.os == 'Linux'
